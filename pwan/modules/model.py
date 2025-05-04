@@ -46,6 +46,9 @@ def rope_apply(x, grid_sizes, freqs):
     # loop over samples
     output = []
     for i, (f, h, w) in enumerate(grid_sizes.tolist()):
+        torch._check_is_size(f)
+        torch._check_is_size(h)
+        torch._check_is_size(w)
         seq_len = f * h * w
 
         # precompute multipliers
