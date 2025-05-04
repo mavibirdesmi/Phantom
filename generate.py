@@ -25,10 +25,10 @@ import torch, random
 import torch.distributed as dist
 from PIL import Image, ImageOps
 
-import phantom_wan
-from phantom_wan.configs import WAN_CONFIGS, SIZE_CONFIGS, MAX_AREA_CONFIGS, SUPPORTED_SIZES
-from phantom_wan.utils.prompt_extend import DashScopePromptExpander, QwenPromptExpander
-from phantom_wan.utils.utils import cache_video, cache_image, str2bool
+import pwan
+from pwan.configs import WAN_CONFIGS, SIZE_CONFIGS, MAX_AREA_CONFIGS, SUPPORTED_SIZES
+from pwan.utils.prompt_extend import DashScopePromptExpander, QwenPromptExpander
+from pwan.utils.utils import cache_video, cache_image, str2bool
 
 EXAMPLE_PROMPT = {
     "t2v-1.3B": {
@@ -341,7 +341,7 @@ def generate(args):
         ref_images = load_ref_images(args.ref_image, SIZE_CONFIGS[args.size])
 
         logging.info("Creating Phantom-Wan pipeline.")
-        wan_s2v = phantom_wan.Phantom_Wan_S2V(
+        wan_s2v = pwan.Phantom_Wan_S2V(
             config=cfg,
             checkpoint_dir=args.ckpt_dir,
             phantom_ckpt=args.phantom_ckpt,
@@ -395,7 +395,7 @@ def generate(args):
             logging.info(f"Extended prompt: {args.prompt}")
 
         logging.info("Creating Phantom-Wan pipeline.")
-        wan_t2v = phantom_wan.WanT2V(
+        wan_t2v = pwan.WanT2V(
             config=cfg,
             checkpoint_dir=args.ckpt_dir,
             device_id=device,
@@ -452,7 +452,7 @@ def generate(args):
             logging.info(f"Extended prompt: {args.prompt}")
 
         logging.info("Creating WanI2V pipeline.")
-        wan_i2v = phantom_wan.WanI2V(
+        wan_i2v = pwan.WanI2V(
             config=cfg,
             checkpoint_dir=args.ckpt_dir,
             device_id=device,

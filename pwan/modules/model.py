@@ -50,7 +50,8 @@ def rope_apply(x, grid_sizes, freqs):
 
         # precompute multipliers
         x_i = torch.view_as_complex(x[i, :seq_len].reshape(
-            seq_len, n, -1, 2))
+            seq_len, n, -1, 2)
+        )
         freqs_i = torch.cat([
             freqs[0][:f].view(f, 1, 1, -1).expand(f, h, w, -1),
             freqs[1][:h].view(1, h, 1, -1).expand(f, h, w, -1),
