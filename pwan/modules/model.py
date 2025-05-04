@@ -37,6 +37,7 @@ def rope_params(max_seq_len, dim, theta=10000):
 
 
 @amp.autocast(enabled=False)
+@torch.compiler.disable(recursive=False)
 def rope_apply(x, grid_sizes, freqs):
     n, c = x.size(2), x.size(3) // 2
 
@@ -46,11 +47,7 @@ def rope_apply(x, grid_sizes, freqs):
     # loop over samples
     output = []
     for i, (f, h, w) in enumerate(grid_sizes.tolist()):
-        torch._check_is_size(f)
-        torch._check_is_size(h)
-        torch._check_is_size(w)
         seq_len = f * h * w
-        torch._check_is_size(seq_len)
 
         # precompute multipliers
         x_i = torch.view_as_complex(x[i, :seq_len].reshape(
