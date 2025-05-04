@@ -50,6 +50,7 @@ def rope_apply(x, grid_sizes, freqs):
         torch._check_is_size(h)
         torch._check_is_size(w)
         seq_len = f * h * w
+        torch._check_is_size(seq_len)
 
         # precompute multipliers
         x_i = torch.view_as_complex(x[i, :seq_len].reshape(
