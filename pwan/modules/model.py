@@ -67,7 +67,8 @@ c - 2 * (c // 3) = 64 - 2 * (64 // 3) = 64 - 42 = 22
         # precompute multipliers
         x_b = x[i, :seq_len]
         x_i = x_b.view(seq_len, -1, 2) # seq_len x n x 2
-        
+        print(x_i.shape)
+        x_i = x_i.expand(-1, -1, c)
         print(x_i.shape)
 
         freqs_i = torch.cat([
