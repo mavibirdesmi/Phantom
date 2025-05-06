@@ -30,49 +30,52 @@ def rope_params(max_seq_len, dim, theta=10000):
     assert dim % 2 == 0
     freqs = torch.outer(
         torch.arange(max_seq_len),
-        1.0 / torch.pow(theta,
-                        torch.arange(0, dim, 2).div(dim)))
-    freqs = torch.polar(torch.ones_like(freqs), freqs)
+        1.0 / torch.pow(theta, torch.arange(0, dim, 2).div(dim)) # 1e4 ^ (2t/dim)
+    )
+    freqs = torch.stack(
+        [
+            torch.cos(freqs), # max_seq_len x dim/2
+            -torch.sin(freqs),
+            torch.sin(freqs),
+            torch.cos(freqs)
+        ],
+        dim=2
+    ) # max_seq_len x dim/2 x 4
+    freqs = freqs.view(max_seq_len, dim // 2, 2, 2)
     return freqs
 
 
 @amp.autocast(enabled=False)
-def rope_apply(x : torch.Tensor, grid_sizes, freqs):
-    # freqs shape [1024, C / num_heads / 2] where C is the embedding dimension
-    # x shape [B, L, num_heads, C] where B is the batch size, L is the sequence length, and C is the embedding dimension
+def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
+    # freqs shape [1024, C, 2, 2] where C is the embedding dimension
+    # x shape [B, L, num_heads, 2*C] where B is the batch size, L is the sequence length, and C is the embedding dimension
     n, c = x.size(2), x.size(3) // 2
-
-    """
-torch.Size([1, 10920, 12, 128])
-tensor([[ 7, 30, 52]])
-torch.Size([1024, 64])
-
-c = 64
-c - 2 * (c // 3) = 64 - 2 * (64 // 3) = 64 - 42 = 22
-    """
+    print(x.shape, freqs.shape)
 
     # split freqs
     freqs = freqs.split([c - 2 * (c // 3), c // 3, c // 3], dim=1)
+    print(freqs[0].shape)
 
     # loop over samples
-
     output = []
     for i, (f, h, w) in enumerate(grid_sizes.tolist()):
         seq_len = f * h * w
 
         # precompute multipliers
         x_b = x[i, :seq_len]
-        x_i = x_b.view(seq_len, n, -1, 2) # seq_len x n x c x 2
+        x_i = x_b.view(seq_len, n, -1, 2, 1) # seq_len x n x c x 2 x 1
+        print(x_i)
 
         freqs_i = torch.cat([
-            freqs[0][:f].view(f, 1, 1, -1).expand(f, h, w, -1),
+            freqs[0][:f].view(f, 1, 1, -1).expand(f, h, w, -1), # [f, c//3, 2, 2] -> [f, h, w, 4*c//3]
             freqs[1][:h].view(1, h, 1, -1).expand(f, h, w, -1),
             freqs[2][:w].view(1, 1, w, -1).expand(f, h, w, -1)
-        ], dim=-1).reshape(seq_len, 1, -1) # shape of seq_len x 1 x c
-        freqs_i = freqs_i.unsqueeze(-1)
+        ], dim=-1).reshape(seq_len, 1, -1, 2, 2) # [f, h, w, 4*c] -> [seq_len, 1, c, 2, 2]
+        print(freqs_i.shape)
 
         # apply rotary embedding
         x_i = (x_i * freqs_i).flatten(2)
+        print(x_i.shape)
         x_i = torch.cat([x_i, x[i, seq_len:]])
 
         # append to collection
@@ -481,11 +484,10 @@ class WanModel(ModelMixin, ConfigMixin):
         assert (dim % num_heads) == 0 and (dim // num_heads) % 2 == 0
         d = dim // num_heads
         self.freqs = torch.cat([
-            rope_params(1024, d - 4 * (d // 6)),
+            rope_params(1024, d - 4 * (d // 6)), # max_seq_len * (d // 6) * 2 * 2
             rope_params(1024, 2 * (d // 6)),
             rope_params(1024, 2 * (d // 6))
-        ],
-                               dim=1)
+        ], dim=1) # max_seq_len * d // 2 * 2 * 2
 
         if model_type == 'i2v':
             self.img_emb = MLPProj(1280, dim)
