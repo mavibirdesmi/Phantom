@@ -33,7 +33,7 @@ def rope_params(max_seq_len, dim, theta=10000):
         1.0 / torch.pow(theta,
                         torch.arange(0, dim, 2).div(dim)))
     freqs = torch.polar(torch.ones_like(freqs), freqs)
-    return freqs
+    return freqs.view(*freqs.size(), 2, 2)
 
 
 @amp.autocast(enabled=False)
@@ -66,9 +66,7 @@ c - 2 * (c // 3) = 64 - 2 * (64 // 3) = 64 - 42 = 22
 
         # precompute multipliers
         x_b = x[i, :seq_len]
-        x_i = x_b.view(seq_len, -1, 2) # seq_len x n x 2
-        print(x_i.shape)
-        x_i = x_i.expand(-1, -1, c)
+        x_i = x_b.view(seq_len, n, -1, 2) # seq_len x n x c x 2
         print(x_i.shape)
 
         freqs_i = torch.cat([
@@ -76,7 +74,8 @@ c - 2 * (c // 3) = 64 - 2 * (64 // 3) = 64 - 42 = 22
             freqs[1][:h].view(1, h, 1, -1).expand(f, h, w, -1),
             freqs[2][:w].view(1, 1, w, -1).expand(f, h, w, -1)
         ], dim=-1).reshape(seq_len, 1, -1) # shape of seq_len x 1 x c
-
+        print(freqs_i.shape)
+        freqs_i = freqs_i.unsqueeze(-1)
         print(freqs_i.shape)
 
         # apply rotary embedding
