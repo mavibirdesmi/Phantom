@@ -74,7 +74,7 @@ def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
         print(freqs_i.shape)
 
         # apply rotary embedding
-        x_i = (x_i * freqs_i).flatten(2)
+        x_i = (x_i * freqs_i).sum(4).flatten(2) # [seq_len, n, c, 2, 2]
         print(x_i.shape)
         x_i = torch.cat([x_i, x[i, seq_len:]])
 
