@@ -38,6 +38,11 @@ def rope_params(max_seq_len, dim, theta=10000):
 
 @amp.autocast(enabled=False)
 def rope_apply(x, grid_sizes, freqs):
+    # freqs shape [1024, C / num_heads / 2] where C is the embedding dimension
+    # x shape [B, L, num_heads, C] where B is the batch size, L is the sequence length, and C is the embedding dimension
+    print(x.shape)
+    print(grid_sizes)
+    print(freqs.shape)
     n, c = x.size(2), x.size(3) // 2
 
     # split freqs
@@ -526,8 +531,11 @@ class WanModel(ModelMixin, ConfigMixin):
 
         # embeddings
         x = [self.patch_embedding(u.unsqueeze(0)) for u in x]
+        print(x[0].shape)
         grid_sizes = torch.stack(
             [torch.tensor(u.shape[2:], dtype=torch.long) for u in x])
+        print(grid_sizes.shape)
+        print(grid_sizes[0])
         x = [u.flatten(2).transpose(1, 2) for u in x]
         seq_lens = torch.tensor([u.size(1) for u in x], dtype=torch.long)
         assert seq_lens.max() <= seq_len
