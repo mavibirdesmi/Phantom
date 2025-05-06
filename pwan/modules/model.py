@@ -33,7 +33,7 @@ def rope_params(max_seq_len, dim, theta=10000):
         1.0 / torch.pow(theta,
                         torch.arange(0, dim, 2).div(dim)))
     freqs = torch.polar(torch.ones_like(freqs), freqs)
-    return freqs.view(*freqs.size(), 2, 2)
+    return freqs
 
 
 @amp.autocast(enabled=False)
