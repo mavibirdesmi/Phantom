@@ -138,7 +138,6 @@ class Phantom_Wan_S2V:
         self.sample_neg_prompt = config.sample_neg_prompt
 
 
-    @torch.compiler.disable(recursive=False)
     def _convert_image_to_tensor(self, image):
         return TF.to_tensor(image).sub_(0.5).div_(0.5).to(self.device)
 
@@ -146,7 +145,6 @@ class Phantom_Wan_S2V:
     def get_vae_latents(self, ref_images, device):
         ref_vae_latents = []
         for ref_image in ref_images:
-            ref_image = self._convert_image_to_tensor(ref_image)
             img_vae_latent = self.vae.encode([ref_image.unsqueeze(1)])
             ref_vae_latents.append(img_vae_latent[0])
                     
@@ -172,7 +170,7 @@ class Phantom_Wan_S2V:
         Args:
             input_prompt (`str`):
                 Text prompt for content generation
-            ref_images ([`PIL.Image`])`:
+            ref_images ([`torch.Tensor`])`:
                 Reference images for subject generation.
             size (tupele[`int`], *optional*, defaults to (1280,720)):
                 Controls video resolution, (width,height).
