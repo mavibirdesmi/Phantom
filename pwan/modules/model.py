@@ -63,13 +63,14 @@ def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
         torch._check(seq_len == x.size(1))
         torch._check((f * h * w) == x.size(1))
         x_b = x[i, :seq_len]
-        x_i = x_b.view(seq_len, n, -1, 1, 2) # seq_len x n x c x 1 x 2
+        x_i = x_b.view(seq_len, n, c, 1, 2) # seq_len x n x c x 1 x 2
 
         freqs_i = torch.cat([
             freqs[0][:f].view(f, 1, 1, -1).expand(f, h, w, -1), # [f, c//3, 2, 2] -> [f, h, w, 4*c//3]
             freqs[1][:h].view(1, h, 1, -1).expand(f, h, w, -1),
             freqs[2][:w].view(1, 1, w, -1).expand(f, h, w, -1)
-        ], dim=-1).reshape(seq_len, 1, -1, 2, 2) # [f, h, w, 4*c] -> [seq_len, 1, c, 2, 2]
+        ], dim=-1) # [f, h, w, 4*c]
+        freqs_i = freqs_i.reshape(seq_len, 1, c, 2, 2) # [f, h, w, 4*c] -> [seq_len, 1, c, 2, 2]
 
         # apply rotary embedding
         x_i = (x_i * freqs_i).sum(4).flatten(2) # [seq_len, n, c, 2, 2]
