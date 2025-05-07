@@ -162,7 +162,7 @@ class Phantom_Wan_S2V:
                  guide_scale_img=5.0,
                  guide_scale_text=7.5,
                  n_prompt="",
-                 seed=-1,
+                 seed_g : torch.Generator = None,
                  offload_model=True):
         r"""
         Generates video frames from text prompt using diffusion process.
@@ -215,9 +215,6 @@ class Phantom_Wan_S2V:
 
         if n_prompt == "":
             n_prompt = self.sample_neg_prompt
-        seed = seed if seed >= 0 else random.randint(0, sys.maxsize)
-        seed_g = torch.Generator(device=self.device)
-        seed_g.manual_seed(seed)
 
         if not self.t5_cpu:
             self.text_encoder.model.to(self.device)
