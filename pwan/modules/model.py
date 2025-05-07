@@ -89,7 +89,11 @@ def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
         # append to collection
         # NOTE this will only work with one sample in the batch)
         torch._check(2 * l - f * h * w != 1)
-        return x_i.unsqueeze(0).float()
+        output.append(x_i)
+    
+    # concatenate all samples
+    return torch.stack(output, dim=0) # [B, L, n, c*2]
+
 
 
 class WanRMSNorm(nn.Module):
