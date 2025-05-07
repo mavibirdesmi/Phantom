@@ -49,7 +49,8 @@ def rope_params(max_seq_len, dim, theta=10000):
 def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
     # freqs shape [1024, C, 2, 2] where C is the embedding dimension
     # x shape [B, L, num_heads, 2*C] where B is the batch size, L is the sequence length, and C is the embedding dimension
-    n, c = x.size(2), x.size(3) // 2
+    l, n, c = x.size(1), x.size(2), x.size(3) // 2
+
     max_seq_len = freqs.size(0)
 
     # split freqs
@@ -80,7 +81,8 @@ def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
         freqs_i = freqs_i.reshape(-1, 1, c, 2, 2) # [f, h, w, 4*c] -> [seq_len, 1, c, 2, 2]
 
         # apply rotary embedding
-        x_i = (x_i * freqs_i).sum(4).flatten(2) # [seq_len, n, c, 2, 2]
+        x_i = (x_i * freqs_i).sum(4).flatten(2) # [seq_len, n, c, 2, 2] -> [seq_len, n, c*2]
+        torch._check((2 * l - f * h * w) >= 0)
         x_i = torch.cat([x_i, x[i, seq_len:]])
 
         # append to collection
