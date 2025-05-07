@@ -141,7 +141,8 @@ class Phantom_Wan_S2V:
     def get_vae_latents(self, ref_images, device):
         ref_vae_latents = []
         for ref_image in ref_images:
-            ref_image = TF.to_tensor(ref_image).sub_(0.5).div_(0.5).to(self.device)
+            with torch.compiler.disable():
+                ref_image = TF.to_tensor(ref_image).sub_(0.5).div_(0.5).to(self.device)
             img_vae_latent = self.vae.encode([ref_image.unsqueeze(1)])
             ref_vae_latents.append(img_vae_latent[0])
                     
