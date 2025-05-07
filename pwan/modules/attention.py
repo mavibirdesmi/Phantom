@@ -61,7 +61,7 @@ def flash_attention(
 
     # preprocess query
     if q_lens is None:
-        torch._check_is_size(q.size(0) * q.size(1) * q.size(2) * q.size(3))
+        torch._check(q.size(0) * q.size(1) * q.size(2) * q.size(3) != 0)
         q = half(q.flatten(0, 1))
         q_lens = torch.tensor(
             [lq] * b, dtype=torch.int32).to(
