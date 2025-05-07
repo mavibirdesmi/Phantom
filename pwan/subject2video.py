@@ -288,7 +288,7 @@ class Phantom_Wan_S2V:
                 )[0]
 
                 pos_i, neg = self.model(
-                    torch.stack(ref_latent_in, ref_latent_neg_in),
+                    [ref_latent_in, ref_latent_neg_in],
                     t=timestep,
                     **arg_null,
                 )
