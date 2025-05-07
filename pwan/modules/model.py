@@ -50,6 +50,7 @@ def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
     # freqs shape [1024, C, 2, 2] where C is the embedding dimension
     # x shape [B, L, num_heads, 2*C] where B is the batch size, L is the sequence length, and C is the embedding dimension
     n, c = x.size(2), x.size(3) // 2
+    max_seq_len = freqs.size(0)
 
     # split freqs
     freqs = freqs.split([c - 2 * (c // 3), c // 3, c // 3], dim=1)
@@ -65,9 +66,9 @@ def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
         x_b = x[i, :seq_len] # seq_len x n x 2c
         x_i = x_b.reshape(*x_b.size()[:-1], -1, 1, 2) # seq_len x n x c x 1 x 2
 
-        torch._check_is_size(f)
-        torch._check_is_size(h)
-        torch._check_is_size(w)
+        torch._check(f <= max_seq_len)
+        torch._check(h <= max_seq_len)
+        torch._check(w <= max_seq_len)
         freqs_i = torch.cat([
             freqs[0][:f].view(f, 1, 1, -1).expand(f, h, w, -1), # [f, c//3, 2, 2] -> [f, h, w, 4*c//3]
             freqs[1][:h].view(1, h, 1, -1).expand(f, h, w, -1),
