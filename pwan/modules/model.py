@@ -58,7 +58,7 @@ def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
 
     # loop over samples
     output = []
-    for i, (f, h, w) in enumerate(grid_sizes.tolist()):
+    for i, (f, h, w) in enumerate(grid_sizes):
         seq_len = f * h * w
 
         # precompute multipliers
@@ -546,8 +546,9 @@ class WanModel(ModelMixin, ConfigMixin):
 
         # embeddings
         x = [self.patch_embedding(u.unsqueeze(0)) for u in x]
-        grid_sizes = torch.stack(
-            [torch.tensor(u.shape[2:], dtype=torch.long) for u in x])
+        grid_sizes = [vid.shape[2:] for vid in x]
+        # grid_sizes = torch.stack(
+        #     [torch.tensor(u.shape[2:], dtype=torch.long) for u in x])
         x = [u.flatten(2).transpose(1, 2) for u in x]
         seq_lens = torch.tensor([u.size(1) for u in x], dtype=torch.long)
         assert seq_lens.max() <= seq_len
@@ -613,7 +614,7 @@ class WanModel(ModelMixin, ConfigMixin):
 
         c = self.out_dim
         out = []
-        for u, v in zip(x, grid_sizes.tolist()):
+        for u, v in zip(x, grid_sizes):
             u = u[:math.prod(v)].view(*v, *self.patch_size, c)
             u = torch.einsum('fhwpqrc->cfphqwr', u)
             u = u.reshape(c, *[i * j for i, j in zip(v, self.patch_size)])
