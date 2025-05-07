@@ -550,8 +550,9 @@ class WanModel(ModelMixin, ConfigMixin):
         # grid_sizes = torch.stack(
         #     [torch.tensor(u.shape[2:], dtype=torch.long) for u in x])
         x = [u.flatten(2).transpose(1, 2) for u in x]
-        seq_lens = torch.tensor([u.size(1) for u in x], dtype=torch.long)
-        assert seq_lens.max() <= seq_len
+        seq_lens = [vid.shape[1] for vid in x]
+        # seq_lens = torch.tensor([u.size(1) for u in x], dtype=torch.long)
+        assert max(seq_lens) <= seq_len
         x = torch.cat([
             torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
                       dim=1) for u in x
