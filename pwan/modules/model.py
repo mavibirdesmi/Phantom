@@ -87,6 +87,8 @@ def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
         x_i = torch.cat([x_i, x[i, seq_len:]])
 
         # append to collection
+        # NOTE this will only work with one sample in the batch)
+        torch._check(2 * l - f * h * w != 1)
         return x_i.unsqueeze(0).float()
 
 
