@@ -60,7 +60,8 @@ def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
         seq_len = f * h * w
 
         # precompute multipliers
-        torch._check(seq_len <= x.size(1))
+        torch._check(seq_len == x.size(1))
+        torch._check((f * h * w) == x.size(1))
         x_b = x[i, :seq_len]
         x_i = x_b.view(seq_len, n, -1, 1, 2) # seq_len x n x c x 1 x 2
 
