@@ -138,7 +138,7 @@ class Phantom_Wan_S2V:
         self.sample_neg_prompt = config.sample_neg_prompt
 
 
-    @torch.compiler.disable
+    @torch.compiler.disable(recursive=False)
     def _convert_image_to_tensor(self, image):
         return TF.to_tensor(image).sub_(0.5).div_(0.5).to(self.device)
 
