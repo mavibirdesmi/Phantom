@@ -287,17 +287,12 @@ class Phantom_Wan_S2V:
                     **arg_c,
                 )[0]
 
-                pos_i = self.model(
-                    ref_latent_in,
+                pos_i, neg = self.model(
+                    torch.stack(ref_latent_in, ref_latent_neg_in),
                     t=timestep,
                     **arg_null,
                 )[0]
-                neg = self.model(
-                    ref_latent_neg_in,
-                    t=timestep,
-                    **arg_null,
-                )[0]
-
+                
                 noise_pred = neg + guide_scale_img * (pos_i - neg) + guide_scale_text * (pos_it - pos_i)
 
                 temp_x0 = sample_scheduler.step(
