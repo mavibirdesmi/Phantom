@@ -266,7 +266,7 @@ class Phantom_Wan_S2V:
             arg_null = {'context': context_null, 'seq_len': seq_len}
 
             for _, t in enumerate(tqdm(timesteps)):
-                
+                torch.compiler.cudagraph_mark_step_begin()
                 timestep = [t]
                 timestep = torch.stack(timestep)
 
