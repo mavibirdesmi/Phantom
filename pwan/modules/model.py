@@ -95,7 +95,6 @@ def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
     return torch.stack(output, dim=0) # [B, L, n, c*2]
 
 
-
 class WanRMSNorm(nn.Module):
 
     def __init__(self, dim, eps=1e-5):
@@ -503,10 +502,9 @@ class WanModel(ModelMixin, ConfigMixin):
 
         if model_type == 'i2v':
             self.img_emb = MLPProj(1280, dim)
-        
+
         # initialize weights
         self.init_weights()
-
 
     def forward(
         self,
@@ -573,11 +571,13 @@ class WanModel(ModelMixin, ConfigMixin):
         # context
         context_lens = None
         context = self.text_embedding(
-            torch.stack([
-                torch.cat(
-                    [u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
-                for u in context
-            ]))
+            torch.stack(
+                [
+                    torch.cat([u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
+                    for u in context
+                ]
+            )
+        )
 
         if clip_fea is not None:
             context_clip = self.img_emb(clip_fea)  # bs x 257 x dim
