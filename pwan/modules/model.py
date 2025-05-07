@@ -87,12 +87,12 @@ def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
         x_i = torch.cat([x_i, x[i, seq_len:]])
 
         # append to collection
-        if len(output) > 0:
-            torch._check(x_i.size(0) == output[-1].size(0))
         output.append(x_i)
 
-    torch._check_is_size(output[-1].size(0))
-    return torch.stack(output).float()
+    out = output[0].unsqueeze(0) # [1, 2*seq_len, n, 2*c]
+    for i in range(1, len(output)):
+        out = torch.cat([out, output[i].unsqueeze(0)], dim=0)
+    return out.float()
 
 
 class WanRMSNorm(nn.Module):
