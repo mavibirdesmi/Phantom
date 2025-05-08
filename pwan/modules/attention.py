@@ -25,8 +25,8 @@ def flash_attention(
     q,
     k,
     v,
-    q_lens=None,
-    k_lens=None,
+    q_lens : list =None,
+    k_lens : list =None,
     dropout_p=0.,
     softmax_scale=None,
     q_scale=None,
@@ -61,23 +61,27 @@ def flash_attention(
 
     # preprocess query
     if q_lens is None:
+        torch._check(q.size(0) * q.size(1) * q.size(2) * q.size(3) != 0)
+        torch._check_is_size(q.size(0) * q.size(1))
         q = half(q.flatten(0, 1))
-        q_lens = torch.tensor(
+        q_lens_t = torch.tensor(
             [lq] * b, dtype=torch.int32).to(
                 device=q.device, non_blocking=True)
     else:
         q = half(torch.cat([u[:v] for u, v in zip(q, q_lens)]))
+        q_lens_t = torch.tensor(q_lens, dtype=torch.int32, device=q.device)
 
     # preprocess key, value
     if k_lens is None:
         k = half(k.flatten(0, 1))
         v = half(v.flatten(0, 1))
-        k_lens = torch.tensor(
+        k_lens_t = torch.tensor(
             [lk] * b, dtype=torch.int32).to(
                 device=k.device, non_blocking=True)
     else:
         k = half(torch.cat([u[:v] for u, v in zip(k, k_lens)]))
         v = half(torch.cat([u[:v] for u, v in zip(v, k_lens)]))
+        k_lens_t = torch.tensor(k_lens, dtype=torch.int32, device=k.device)
 
     q = q.to(v.dtype)
     k = k.to(v.dtype)
@@ -97,9 +101,9 @@ def flash_attention(
             q=q,
             k=k,
             v=v,
-            cu_seqlens_q=torch.cat([q_lens.new_zeros([1]), q_lens]).cumsum(
+            cu_seqlens_q=torch.cat([q_lens_t.new_zeros([1]), q_lens_t]).cumsum(
                 0, dtype=torch.int32).to(q.device, non_blocking=True),
-            cu_seqlens_k=torch.cat([k_lens.new_zeros([1]), k_lens]).cumsum(
+            cu_seqlens_k=torch.cat([k_lens_t.new_zeros([1]), k_lens_t]).cumsum(
                 0, dtype=torch.int32).to(q.device, non_blocking=True),
             seqused_q=None,
             seqused_k=None,
@@ -114,9 +118,9 @@ def flash_attention(
             q=q,
             k=k,
             v=v,
-            cu_seqlens_q=torch.cat([q_lens.new_zeros([1]), q_lens]).cumsum(
+            cu_seqlens_q=torch.cat([q_lens_t.new_zeros([1]), q_lens_t]).cumsum(
                 0, dtype=torch.int32).to(q.device, non_blocking=True),
-            cu_seqlens_k=torch.cat([k_lens.new_zeros([1]), k_lens]).cumsum(
+            cu_seqlens_k=torch.cat([k_lens_t.new_zeros([1]), k_lens_t]).cumsum(
                 0, dtype=torch.int32).to(q.device, non_blocking=True),
             max_seqlen_q=lq,
             max_seqlen_k=lk,

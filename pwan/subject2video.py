@@ -137,10 +137,12 @@ class Phantom_Wan_S2V:
 
         self.sample_neg_prompt = config.sample_neg_prompt
 
+    def _convert_image_to_tensor(self, image):
+        return TF.to_tensor(image).sub_(0.5).div_(0.5).to(self.device)
+
     def get_vae_latents(self, ref_images, device):
         ref_vae_latents = []
         for ref_image in ref_images:
-            ref_image = TF.to_tensor(ref_image).sub_(0.5).div_(0.5).to(self.device)
             img_vae_latent = self.vae.encode([ref_image.unsqueeze(1)])
             ref_vae_latents.append(img_vae_latent[0])
 
@@ -157,7 +159,7 @@ class Phantom_Wan_S2V:
                  guide_scale_img=5.0,
                  guide_scale_text=7.5,
                  n_prompt="",
-                 seed=-1,
+                 seed_g : torch.Generator = None,
                  offload_model=True):
         r"""
         Generates video frames from text prompt using diffusion process.
@@ -165,7 +167,7 @@ class Phantom_Wan_S2V:
         Args:
             input_prompt (`str`):
                 Text prompt for content generation
-            ref_images ([`PIL.Image`])`:
+            ref_images ([`torch.Tensor`])`:
                 Reference images for subject generation.
             size (tupele[`int`], *optional*, defaults to (1280,720)):
                 Controls video resolution, (width,height).
@@ -210,9 +212,6 @@ class Phantom_Wan_S2V:
 
         if n_prompt == "":
             n_prompt = self.sample_neg_prompt
-        seed = seed if seed >= 0 else random.randint(0, sys.maxsize)
-        seed_g = torch.Generator(device=self.device)
-        seed_g.manual_seed(seed)
 
         if not self.t5_cpu:
             self.text_encoder.model.to(self.device)
@@ -265,7 +264,7 @@ class Phantom_Wan_S2V:
 
 
             for _, t in enumerate(tqdm(timesteps)):
-
+                torch.compiler.cudagraph_mark_step_begin()
                 timestep = [t]
                 timestep = torch.stack(timestep)
 

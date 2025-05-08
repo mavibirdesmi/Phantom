@@ -58,7 +58,7 @@ def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
 
     # loop over samples
     output = []
-    for i, (f, h, w) in enumerate(grid_sizes.tolist()):
+    for i, (f, h, w) in enumerate(grid_sizes):
         seq_len = f * h * w
 
         # precompute multipliers
@@ -82,14 +82,17 @@ def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
 
         # apply rotary embedding
         x_i = (x_i * freqs_i).sum(4).flatten(2) # [seq_len, n, c, 2, 2] -> [seq_len, n, c*2]
-        torch._check_is_size(l - f * h * w, f"{f}, {h}, {w}, {l}, {n}, {c}")
-        torch._check((2 * l - f * h * w) == 0, f"{f}, {h}, {w}, {l}, {n}, {c}")
-        x_i = torch.cat([x_i, x[i, seq_len:]])
+        # torch._check_is_size(l - f * h * w, f"{f}, {h}, {w}, {l}, {n}, {c}")
+        # torch._check((2 * l - f * h * w) == 0, f"{f}, {h}, {w}, {l}, {n}, {c}")
+        x_i = torch.cat([x_i, x[i, seq_len:]]) # [2xseq_len, n, c*2]
 
         # append to collection
         # NOTE this will only work with one sample in the batch)
         torch._check(2 * l - f * h * w != 1)
-        return x_i.unsqueeze(0).float()
+        output.append(x_i)
+    
+    # concatenate all samples
+    return torch.stack(output, dim=0) # [B, L, n, c*2]
 
 
 class WanRMSNorm(nn.Module):
@@ -499,10 +502,9 @@ class WanModel(ModelMixin, ConfigMixin):
 
         if model_type == 'i2v':
             self.img_emb = MLPProj(1280, dim)
-        
+
         # initialize weights
         self.init_weights()
-
 
     def forward(
         self,
@@ -534,6 +536,7 @@ class WanModel(ModelMixin, ConfigMixin):
             List[Tensor]:
                 List of denoised video tensors with original input shapes [C_out, F, H / 8, W / 8]
         """
+
         if self.model_type == 'i2v':
             assert clip_fea is not None and y is not None
         # params
@@ -546,11 +549,13 @@ class WanModel(ModelMixin, ConfigMixin):
 
         # embeddings
         x = [self.patch_embedding(u.unsqueeze(0)) for u in x]
-        grid_sizes = torch.stack(
-            [torch.tensor(u.shape[2:], dtype=torch.long) for u in x])
+        grid_sizes = [vid.shape[2:] for vid in x]
+        # grid_sizes = torch.stack(
+        #     [torch.tensor(u.shape[2:], dtype=torch.long) for u in x])
         x = [u.flatten(2).transpose(1, 2) for u in x]
-        seq_lens = torch.tensor([u.size(1) for u in x], dtype=torch.long)
-        assert seq_lens.max() <= seq_len
+        seq_lens = [vid.shape[1] for vid in x]
+        # seq_lens = torch.tensor([u.size(1) for u in x], dtype=torch.long)
+        assert max(seq_lens) <= seq_len
         x = torch.cat([
             torch.cat([u, u.new_zeros(1, seq_len - u.size(1), u.size(2))],
                       dim=1) for u in x
@@ -566,11 +571,13 @@ class WanModel(ModelMixin, ConfigMixin):
         # context
         context_lens = None
         context = self.text_embedding(
-            torch.stack([
-                torch.cat(
-                    [u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
-                for u in context
-            ]))
+            torch.stack(
+                [
+                    torch.cat([u, u.new_zeros(self.text_len - u.size(0), u.size(1))])
+                    for u in context
+                ]
+            )
+        )
 
         if clip_fea is not None:
             context_clip = self.img_emb(clip_fea)  # bs x 257 x dim
@@ -613,7 +620,7 @@ class WanModel(ModelMixin, ConfigMixin):
 
         c = self.out_dim
         out = []
-        for u, v in zip(x, grid_sizes.tolist()):
+        for u, v in zip(x, grid_sizes):
             u = u[:math.prod(v)].view(*v, *self.patch_size, c)
             u = torch.einsum('fhwpqrc->cfphqwr', u)
             u = u.reshape(c, *[i * j for i, j in zip(v, self.patch_size)])
