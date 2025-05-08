@@ -137,16 +137,14 @@ class Phantom_Wan_S2V:
 
         self.sample_neg_prompt = config.sample_neg_prompt
 
-
     def get_vae_latents(self, ref_images, device):
         ref_vae_latents = []
         for ref_image in ref_images:
             ref_image = TF.to_tensor(ref_image).sub_(0.5).div_(0.5).to(self.device)
             img_vae_latent = self.vae.encode([ref_image.unsqueeze(1)])
             ref_vae_latents.append(img_vae_latent[0])
-                    
+
         return torch.cat(ref_vae_latents, dim=1)
-        
 
     def generate(self,
                  input_prompt,
@@ -265,24 +263,46 @@ class Phantom_Wan_S2V:
             arg_c = {'context': context, 'seq_len': seq_len}
             arg_null = {'context': context_null, 'seq_len': seq_len}
 
+
             for _, t in enumerate(tqdm(timesteps)):
-                
+
                 timestep = [t]
                 timestep = torch.stack(timestep)
 
-                self.model.to(self.device)
                 pos_it = self.model(
-                    [torch.cat([latent[:,:-ref_latent.shape[1]], ref_latent], dim=1) for latent, ref_latent in zip(latents, ref_latents)], t=timestep, **arg_c
-                    )[0]
+                    [
+                        torch.cat(
+                            [latent[:, : -ref_latent.shape[1]], ref_latent], dim=1
+                        )
+                        for latent, ref_latent in zip(latents, ref_latents)
+                    ],
+                    t=timestep,
+                    **arg_c,
+                )[0]
                 pos_i = self.model(
-                    [torch.cat([latent[:,:-ref_latent.shape[1]], ref_latent], dim=1) for latent, ref_latent in zip(latents, ref_latents)], t=timestep, **arg_null
-                    )[0]
+                    [
+                        torch.cat(
+                            [latent[:, : -ref_latent.shape[1]], ref_latent], dim=1
+                        )
+                        for latent, ref_latent in zip(latents, ref_latents)
+                    ],
+                    t=timestep,
+                    **arg_null,
+                )[0]
                 neg = self.model(
-                    [torch.cat([latent[:,:-ref_latent_neg.shape[1]], ref_latent_neg], dim=1) for latent, ref_latent_neg in zip(latents, ref_latents_neg)], t=timestep, **arg_null
-                    )[0]
-                
+                    [
+                        torch.cat(
+                            [latent[:, : -ref_latent_neg.shape[1]], ref_latent_neg],
+                            dim=1,
+                        )
+                        for latent, ref_latent_neg in zip(latents, ref_latents_neg)
+                    ],
+                    t=timestep,
+                    **arg_null,
+                )[0]
+
                 noise_pred = neg + guide_scale_img * (pos_i - neg) + guide_scale_text * (pos_it - pos_i)
-                
+
                 temp_x0 = sample_scheduler.step(
                     noise_pred.unsqueeze(0),
                     t,
