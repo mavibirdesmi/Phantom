@@ -266,7 +266,9 @@ class Phantom_Wan_S2V:
                 sample_scheduler : FlowUniPCMultistepScheduler,
                 noise_pred,
                 t : torch.Tensor,
-                latents
+                latents,
+                seed_g : torch.Generator,
+                device : torch.device
             ):
                 with torch.cuda.set_device(self.device):
                     return sample_scheduler.step(
@@ -324,7 +326,7 @@ class Phantom_Wan_S2V:
                     noise_pred = neg + guide_scale_img * (pos_i - neg) + guide_scale_text * (pos_it - pos_i)
 
                 with torch.profiler.record_function("noise_scheduler_step"):
-                    temp_x0 = scheduler_step(sample_scheduler, noise_pred, t, latents)
+                    temp_x0 = scheduler_step(sample_scheduler, noise_pred, t, latents, seed_g, self.device)
                 latents = [temp_x0.squeeze(0)]
 
             x0 = latents
