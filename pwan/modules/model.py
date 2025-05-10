@@ -2,6 +2,7 @@
 import math
 
 import torch
+import torch.profiler as torch_profiler
 import torch.cuda.amp as amp
 import torch.nn as nn
 from diffusers.configuration_utils import ConfigMixin, register_to_config
@@ -592,14 +593,18 @@ class WanModel(ModelMixin, ConfigMixin):
             context=context,
             context_lens=context_lens)
 
-        for block in self.blocks:
-            x = block(x, **kwargs)
+        with torch_profiler.record_function('wan_blocks'):
+            # blocks
+            for block in self.blocks:
+                x = block(x, **kwargs)
 
         # head
-        x = self.head(x, e)
-
+        with torch_profiler.record_function('wan_head'):
+            x = self.head(x, e)
+        
         # unpatchify
-        x = self.unpatchify(x, grid_sizes)
+        with torch_profiler.record_function('wan_unpatchify'):
+            x = self.unpatchify(x, grid_sizes)
         return [u.float() for u in x]
 
     def unpatchify(self, x, grid_sizes):

@@ -25,6 +25,9 @@ from functools import partial
 import torch
 import torch.cuda.amp as amp
 import torch.distributed as dist
+
+import torch.profiler as torch_profiler
+
 from tqdm import tqdm
 import torchvision.transforms.functional as TF
 
@@ -268,39 +271,41 @@ class Phantom_Wan_S2V:
                 timestep = [t]
                 timestep = torch.stack(timestep)
 
-                pos_it = self.model(
-                    [
-                        torch.cat(
-                            [latent[:, : -ref_latent.shape[1]], ref_latent], dim=1
-                        )
-                        for latent, ref_latent in zip(latents, ref_latents)
-                    ],
-                    t=timestep,
-                    **arg_c,
-                )[0]
-                pos_i = self.model(
-                    [
-                        torch.cat(
-                            [latent[:, : -ref_latent.shape[1]], ref_latent], dim=1
-                        )
-                        for latent, ref_latent in zip(latents, ref_latents)
-                    ],
-                    t=timestep,
-                    **arg_null,
-                )[0]
-                neg = self.model(
-                    [
-                        torch.cat(
-                            [latent[:, : -ref_latent_neg.shape[1]], ref_latent_neg],
-                            dim=1,
-                        )
-                        for latent, ref_latent_neg in zip(latents, ref_latents_neg)
-                    ],
-                    t=timestep,
-                    **arg_null,
-                )[0]
+                with torch.profiler.record_function("model_step"):
+                    pos_it = self.model(
+                        [
+                            torch.cat(
+                                [latent[:, : -ref_latent.shape[1]], ref_latent], dim=1
+                            )
+                            for latent, ref_latent in zip(latents, ref_latents)
+                        ],
+                        t=timestep,
+                        **arg_c,
+                    )[0]
+                    pos_i = self.model(
+                        [
+                            torch.cat(
+                                [latent[:, : -ref_latent.shape[1]], ref_latent], dim=1
+                            )
+                            for latent, ref_latent in zip(latents, ref_latents)
+                        ],
+                        t=timestep,
+                        **arg_null,
+                    )[0]
+                    neg = self.model(
+                        [
+                            torch.cat(
+                                [latent[:, : -ref_latent_neg.shape[1]], ref_latent_neg],
+                                dim=1,
+                            )
+                            for latent, ref_latent_neg in zip(latents, ref_latents_neg)
+                        ],
+                        t=timestep,
+                        **arg_null,
+                    )[0]
 
-                noise_pred = neg + guide_scale_img * (pos_i - neg) + guide_scale_text * (pos_it - pos_i)
+                with torch.profiler.record_function("noise_pred_step"):
+                    noise_pred = neg + guide_scale_img * (pos_i - neg) + guide_scale_text * (pos_it - pos_i)
 
                 temp_x0 = sample_scheduler.step(
                     noise_pred.unsqueeze(0),
