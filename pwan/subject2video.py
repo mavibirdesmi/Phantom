@@ -270,7 +270,7 @@ class Phantom_Wan_S2V:
                 seed_g : torch.Generator,
                 device : torch.device
             ):
-                with torch.cuda.set_device(self.device):
+                with torch.cuda.device(self.device):
                     return sample_scheduler.step(
                         noise_pred.unsqueeze(0),
                         t.item(),
