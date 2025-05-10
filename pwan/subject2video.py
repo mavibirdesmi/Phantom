@@ -258,6 +258,21 @@ class Phantom_Wan_S2V:
                 timesteps = sample_scheduler.timesteps
             else:
                 raise NotImplementedError("Unsupported solver.")
+            
+
+            @torch.compile()
+            def scheduler_step(
+                sample_scheduler : FlowDPMSolverMultistepScheduler,
+                noise_pred,
+                t,
+                latents
+            ):
+                return sample_scheduler.step(
+                    noise_pred.unsqueeze(0),
+                    t,
+                    latents[0].unsqueeze(0),
+                    return_dict=False,
+                    generator=seed_g)[0]
 
             # sample videos
             latents = noise
@@ -308,12 +323,7 @@ class Phantom_Wan_S2V:
                     noise_pred = neg + guide_scale_img * (pos_i - neg) + guide_scale_text * (pos_it - pos_i)
 
                 with torch.profiler.record_function("noise_scheduler_step"):
-                    temp_x0 = sample_scheduler.step(
-                        noise_pred.unsqueeze(0),
-                        t,
-                        latents[0].unsqueeze(0),
-                        return_dict=False,
-                        generator=seed_g)[0]
+                    temp_x0 = scheduler_step(sample_scheduler, noise_pred, t, latents)
                 latents = [temp_x0.squeeze(0)]
 
             x0 = latents
