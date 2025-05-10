@@ -307,12 +307,13 @@ class Phantom_Wan_S2V:
                 with torch.profiler.record_function("noise_pred_step"):
                     noise_pred = neg + guide_scale_img * (pos_i - neg) + guide_scale_text * (pos_it - pos_i)
 
-                temp_x0 = sample_scheduler.step(
-                    noise_pred.unsqueeze(0),
-                    t,
-                    latents[0].unsqueeze(0),
-                    return_dict=False,
-                    generator=seed_g)[0]
+                with torch.profiler.record_function("noise_scheduler_step"):
+                    temp_x0 = sample_scheduler.step(
+                        noise_pred.unsqueeze(0),
+                        t,
+                        latents[0].unsqueeze(0),
+                        return_dict=False,
+                        generator=seed_g)[0]
                 latents = [temp_x0.squeeze(0)]
 
             x0 = latents
