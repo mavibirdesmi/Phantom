@@ -260,13 +260,14 @@ class Phantom_Wan_S2V:
                 raise NotImplementedError("Unsupported solver.")
             
 
-            @torch.compile()
+            # @torch.compile()
             def scheduler_step(
                 sample_scheduler : FlowDPMSolverMultistepScheduler,
                 noise_pred,
                 t,
                 latents
             ):
+                print("in", t, type(t))
                 return sample_scheduler.step(
                     noise_pred.unsqueeze(0),
                     t,
