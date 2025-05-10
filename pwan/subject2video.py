@@ -264,13 +264,13 @@ class Phantom_Wan_S2V:
             def scheduler_step(
                 sample_scheduler : FlowDPMSolverMultistepScheduler,
                 noise_pred,
-                t,
+                t : torch.Tensor,
                 latents
             ):
                 print("in", t, type(t))
                 return sample_scheduler.step(
                     noise_pred.unsqueeze(0),
-                    t,
+                    t.item(),
                     latents[0].unsqueeze(0),
                     return_dict=False,
                     generator=seed_g)[0]
@@ -286,7 +286,6 @@ class Phantom_Wan_S2V:
                 torch.compiler.cudagraph_mark_step_begin()
                 timestep = [t]
                 timestep = torch.stack(timestep)
-                timestep = timestep.to(self.device)
 
                 with torch.profiler.record_function("model_step"):
                     pos_it = self.model(
