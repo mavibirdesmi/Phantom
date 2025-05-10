@@ -260,14 +260,13 @@ class Phantom_Wan_S2V:
                 raise NotImplementedError("Unsupported solver.")
             
 
-            # @torch.compile()
+            @torch.compile()
             def scheduler_step(
                 sample_scheduler : FlowDPMSolverMultistepScheduler,
                 noise_pred,
                 t : torch.Tensor,
                 latents
             ):
-                print("in", t, type(t))
                 return sample_scheduler.step(
                     noise_pred.unsqueeze(0),
                     t.item(),
@@ -281,7 +280,6 @@ class Phantom_Wan_S2V:
             arg_c = {'context': context, 'seq_len': seq_len}
             arg_null = {'context': context_null, 'seq_len': seq_len}
 
-            print(timesteps, type(timesteps), timesteps.shape)
             for _, t in enumerate(tqdm(timesteps)):
                 torch.compiler.cudagraph_mark_step_begin()
                 timestep = [t]
