@@ -262,17 +262,18 @@ class Phantom_Wan_S2V:
 
             @torch.compile()
             def scheduler_step(
-                sample_scheduler : FlowDPMSolverMultistepScheduler,
+                sample_scheduler : FlowUniPCMultistepScheduler,
                 noise_pred,
                 t : torch.Tensor,
                 latents
             ):
-                return sample_scheduler.step(
-                    noise_pred.unsqueeze(0),
-                    t.item(),
-                    latents[0].unsqueeze(0),
-                    return_dict=False,
-                    generator=seed_g)[0]
+                with torch.cuda.set_device(self.device):
+                    return sample_scheduler.step(
+                        noise_pred.unsqueeze(0),
+                        t.item(),
+                        latents[0].unsqueeze(0),
+                        return_dict=False,
+                        generator=seed_g)[0]
 
             # sample videos
             latents = noise
