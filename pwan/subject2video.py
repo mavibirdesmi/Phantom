@@ -282,9 +282,11 @@ class Phantom_Wan_S2V:
 
 
             for _, t in enumerate(tqdm(timesteps)):
+                print(t, type(t))
                 torch.compiler.cudagraph_mark_step_begin()
                 timestep = [t]
                 timestep = torch.stack(timestep)
+                timestep = timestep.to(self.device)
 
                 with torch.profiler.record_function("model_step"):
                     pos_it = self.model(
