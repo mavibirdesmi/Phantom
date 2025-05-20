@@ -261,7 +261,6 @@ class Phantom_Wan_S2V:
                 raise NotImplementedError("Unsupported solver.")
             
 
-            @torch.compile()
             def scheduler_step(
                 sample_scheduler : FlowUniPCMultistepScheduler,
                 noise_pred,
