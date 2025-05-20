@@ -28,7 +28,6 @@ def sinusoidal_embedding_1d(dim, position):
 
 @amp.autocast(enabled=False)
 def rope_params(max_seq_len, dim, theta=10000):
-    print(max_seq_len, dim, theta)
     assert dim % 2 == 0
     freqs = torch.outer(
         torch.arange(max_seq_len),
@@ -49,7 +48,6 @@ def rope_params(max_seq_len, dim, theta=10000):
 
 @amp.autocast(enabled=False)
 def rope_apply(x : torch.Tensor, grid_sizes, freqs : torch.Tensor):
-    print(x.shape, grid_sizes, freqs.shape)
     # freqs shape [1024, C, 2, 2] where C is the embedding dimension
     # x shape [B, L, num_heads, 2*C] where B is the batch size, L is the sequence length, and C is the embedding dimension
     l, n, c = x.size(1), x.size(2), x.size(3) // 2
